@@ -48,9 +48,15 @@ torn<- read.csv(url,header=FALSE,
              colClasses=c(rep("numeric",4),"character","character",
                           rep("factor",3),"numeric",
                           "factor",rep("numeric",10),
-                          rep("factor",7)))
+                          rep("factor",3),rep("character",4)))
                      
 #need to seriously clean for nulls 
 # several instances -9 is used for this
 #lat lon if 0, must be na
+summary(torn)
 
+#date & time to R date format
+# do
+
+#fscale
+torn$f.scale[torn$f.scale==-9] <- NA
