@@ -35,7 +35,7 @@
 
 #URL working & correct as of October 2014
 url<-"http://www.spc.noaa.gov/wcm/data/1950-2013_torn.csv"
-url<-"c:/users/jbrown/source/repos/tornado/RawData/1950-2013_torn.csv"
+url<-"c:/users/jason/source/repos/tornado/tornadorisk/RawData/1950-2013_torn.csv"
 #cheat for developing these functions
 
 torn<- read.csv(url,header=FALSE,
@@ -67,23 +67,56 @@ summary(torn$state.post)
 #fscale
 torn$f.scale[torn$f.scale==-9] <- NA
 
-#loss needs significant work as it was re-coded multiple times
-summary(torn$loss)
-torn$loss[torn$loss == 0] <- NA
-#easy way to do this is to code all as a factor,including newer ones with $M estimates
-torn$loss.cat <- ordered(NA,levels=1:9,
-                         labels= c("<50","50-500","500-5,000","5k-50k","50k-500k","500k-5M",
-                                   "5M-50M","50M-500M",">500M"))
-              
-sub<- torn$year<1996 & !is.na(torn$loss)
-torn$loss.cat[sub] <-torn$loss[sub]
-
-#may be easier to do this by assigning midpoints as a point est for pre-'96, then set loss.cat with "cut"
+#loss needs significant work as it was re-coded by the data custodian
 
 loss.point<- data.frame(loss=1:9,lb=c(0,50,500,5000,50000,500000, 5000000, 50000000,500000000),
                         ub=c(50,500,5000,50000,500000, 5000000, 50000000,500000000,NA))
 #compute geometric mean of bucket
-loss.point$point.est = sqrt(loss.point$lb * loss.point$ub)
-loss.point$point.est[9]=500000000
+loss.point$loss.point = sqrt(loss.point$lb * loss.point$ub)
+#last one is unbounded, so make point estimate its lower bound
+loss.point$loss.point[9]=500000000
 
 #merge loss.point with torn to set pre '96 point estimates
+torn<-merge(torn,loss.point,all.x=TRUE,by="loss")
+plot(loss.point~jitter(loss),torn,xlim=c(0,12),log="y")
+summary(torn$loss.point)
+sub <- !is.na(torn$loss) & torn$year>=1996
+torn[sub,"loss.point"] <- 1000000*torn[sub,"loss"]
+
+par(mfrow=c(1,2))
+plot(loss.point~jitter(loss),subset(torn,year<1996),xlim=c(0,12),log="y")
+plot(loss.point/1000000~loss,subset(torn,year>=1996))
+abline(0,1)
+
+#check that NA's have been transposed okay.
+nrow(torn) - sum(is.na(torn$loss) == is.na(torn$loss.point))
+
+#drop now extraneous variables 
+torn$lb<-NULL
+torn$ub<-NULL
+
+### lats and lons ... safe to assume since data coverage is explicitly 
+## united states that 0,0 is interpreted as NA, NA
+
+sum(torn$start.lat==0)
+summary(torn$start.lon[torn$start.lat==0])
+torn$star
+
+torn$start.lat[torn$start.lat==0] <- NA
+torn$start.lon[torn$start.lon==0] <- NA
+summary(torn)
+
+# missing end coordinate is much more common
+sum(torn$end.lat==0)
+summary(torn$end.lon[torn$end.lat==0])
+
+torn$end.lat[torn$end.lat==0] <- NA
+torn$end.lon[torn$end.lon==0] <- NA
+summary(torn)
+
+
+par(mfrow=c(1,1))
+
+plot(start.lat~start.lon,torn,col=f.scale)
+
+#beter color pallete
