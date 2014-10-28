@@ -83,6 +83,10 @@ summary(torn$loss.point)
 sub <- !is.na(torn$loss) & torn$year>=1996
 torn[sub,"loss.point"] <- 1000000*torn[sub,"loss"]
 
+#compute factor
+torn$loss.cat <- cut(torn$loss.point,breaks=c(0,50,500,5000,50000,500000, 5000000, 50000000,500000000))
+plot(loss ~ loss.cat, subset(torn,year<1996))
+
 par(mfrow=c(1,2))
 plot(loss.point~jitter(loss),subset(torn,year<1996),xlim=c(0,12),log="y")
 plot(loss.point/1000000~loss,subset(torn,year>=1996))
@@ -94,6 +98,7 @@ nrow(torn) - sum(is.na(torn$loss) == is.na(torn$loss.point))
 #drop now extraneous variables 
 torn$lb<-NULL
 torn$ub<-NULL
+
 
 ### lats and lons ... safe to assume since data coverage is explicitly 
 ## united states that 0,0 is interpreted as NA, NA
@@ -119,4 +124,25 @@ par(mfrow=c(1,1))
 
 plot(start.lat~start.lon,torn,col=f.scale)
 
-#beter color pallete
+#no AK or HI events by start location
+subset(torn,state.post=="AK" |  state.post=="HI")
+
+sum(is.na(torn$start.lat))  #118
+
+summary(torn$track.len.mi)
+summary(torn$track.wid.yd)
+#zeros here likely mean missing data
+torn$track.len.mi[torn$track.len.mi==0] <- NA
+torn$track.wid.yd[torn$track.wid.yd==0]<- NA
+
+#identifier to be able to go back to the original
+torn$storm.id<- paste(torn$year, torn$obsInYear, sep="-")
+
+tornado <- torn[torn$segment==1,c("storm.id","state.post","date2","f.scale",
+              "injury.count","fatality.count","loss.cat","start.lat","start.lon",
+              "end.lat","end.lon","track.len.mi","track.wid.yd")]
+
+nrow(tornado)
+summary(torn$segment)
+
+names(tornado)[3] <- "date"
